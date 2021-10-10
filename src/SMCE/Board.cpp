@@ -83,22 +83,20 @@ Board::Board(std::function<void(int)> exit_notify) noexcept
 Board::~Board() { do_reap(); }
 
 [[nodiscard]] BoardView Board::view() noexcept {
-    if (m_status != Status::running && m_status != Status::suspended)
+    if (!isStarted())
         return {};
     return BoardView{*m_internal->sbdata.get_board_data()};
 }
 
 bool Board::attach_sketch(const Sketch& sketch) noexcept {
-    if (m_status == Status::running || m_status == Status::suspended)
+    if (isStarted())
         return false;
     m_sketch_ptr = &sketch;
     return true;
 }
 
 void Board::tick() noexcept {
-    switch (m_status) {
-    case Status::running:
-    case Status::suspended: {
+    if (isStarted()) {
         auto& in = *m_internal;
         if (!in.sketch.running()) {
             const auto exit_code = m_internal->sketch.exit_code();
@@ -108,16 +106,12 @@ void Board::tick() noexcept {
                 m_exit_notify(exit_code);
         }
     }
-    default:;
-    }
 }
 
 bool Board::reset() noexcept {
-    switch (m_status) {
-    case Status::running:
-    case Status::suspended:
+    if (isStarted()) 
         return false;
-    default:
+    else {
         do_reap();
         m_sketch_ptr = nullptr;
         m_conf_opt = std::nullopt;
@@ -178,13 +172,15 @@ bool Board::resume() noexcept {
 }
 
 bool Board::terminate() noexcept {
-    if (m_status != Status::running && m_status != Status::suspended)
+    if (isStarted()) {
+        do_reap();
+
+        m_status = Status::stopped;
+        return true;
+    }
+    else {
         return false;
-
-    do_reap();
-
-    m_status = Status::stopped;
-    return true;
+    }
 }
 
 /*
@@ -228,9 +224,6 @@ void Board::do_spawn() noexcept {
     // clang-format on
 
     m_internal->sketch_log_grabber = std::thread{[&] {
-        //auto& stream = m_internal->sketch_log;
-
-        //constexpr size_t buf_len = 1024;
         LogHandler<1024> log_handler(m_internal->sketch_log, m_runtime_log_mtx);
         log_handler.handle(m_runtime_log);
         m_internal->sketch_log.pipe().close();
@@ -306,28 +299,5 @@ template <int buf_len> void LinuxLogHandler<buf_len>::handle(std::string &runtim
         std::memcpy(runtime_log.data() + existing, buf.data(), count);
     }
 }
-/*
-#if BOOST_OS_LINUX
-        std::array<char, buf_len> buf;
-        for (;;) {
-            const int fd = stream.pipe().native_source();
-            const auto count = ::read(fd, buf.data(), buf_len);
-            if (count == 0) // eof
-                break;
-            if (count == -1) {
-                if (errno == EINTR)
-                    continue;
-                else
-                    break;
-            }
-            [[maybe_unused]] std::lock_guard lk{m_runtime_log_mtx};
-            const auto existing = m_runtime_log.size();
-            m_runtime_log.resize(existing + count);
-            std::memcpy(m_runtime_log.data() + existing, buf.data(), count);
-        }
-#else
-#endif
-
-*/
 
 } // namespace smce
