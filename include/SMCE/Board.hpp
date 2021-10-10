@@ -24,6 +24,7 @@
 #include <mutex>
 #include <string_view>
 #include <utility>
+#include <boost/process.hpp>
 #include "SMCE/BoardConf.hpp"
 #include "SMCE/BoardView.hpp"
 #include "SMCE/SMCE_fs.hpp"
@@ -99,6 +100,27 @@ class SMCE_API Board {
     std::function<void(int)> m_exit_notify;
     std::unique_ptr<Internal> m_internal;
 };
+
+template <int buf_len> class LogHandlerBase {
+  protected:
+    boost::process::ipstream & m_log;
+    std::mutex &m_log_mtx;
+  public:
+    LogHandlerBase(boost::process::ipstream & log, std::mutex &log_mtx): m_log{log}, m_log_mtx{log_mtx} { }
+    [[nodiscard]] virtual void handle(std::string &runtime_log);
+};
+
+template <int buf_len> class LinuxLogHandler : public LogHandlerBase<buf_len> {
+  public:
+    LinuxLogHandler(boost::process::ipstream & log, std::mutex &log_mtx): LogHandlerBase(log, log_mtx) { }
+    [[nodiscard]] void handle(std::string &runtime_log) override;
+};
+
+#if BOOST_OS_LINUX
+template <int buf_len> using LogHandler = LinuxLogHandler<buf_len>;
+#else
+template <int buf_len> using LogHandler = LogHandlerBase<buf_len>;
+#endif
 
 } // namespace smce
 

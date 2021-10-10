@@ -52,7 +52,6 @@ extern "C" {
 #include <SMCE/Uuid.hpp>
 #include <SMCE/internal/SharedBoardData.hpp>
 #include <SMCE/internal/utils.hpp>
-#include <boost/process.hpp>
 
 namespace bp = boost::process;
 namespace bip = boost::interprocess;
@@ -229,44 +228,12 @@ void Board::do_spawn() noexcept {
     // clang-format on
 
     m_internal->sketch_log_grabber = std::thread{[&] {
-        auto& stream = m_internal->sketch_log;
+        //auto& stream = m_internal->sketch_log;
 
-        constexpr size_t buf_len = 1024;
-#if BOOST_OS_LINUX
-        std::array<char, buf_len> buf;
-        for (;;) {
-            const int fd = stream.pipe().native_source();
-            const auto count = ::read(fd, buf.data(), buf_len);
-            if (count == 0) // eof
-                break;
-            if (count == -1) {
-                if (errno == EINTR)
-                    continue;
-                else
-                    break;
-            }
-            [[maybe_unused]] std::lock_guard lk{m_runtime_log_mtx};
-            const auto existing = m_runtime_log.size();
-            m_runtime_log.resize(existing + count);
-            std::memcpy(m_runtime_log.data() + existing, buf.data(), count);
-        }
-#else
-        std::string buf;
-        buf.reserve(buf_len);
-        while (stream.good()) {
-            const int head = stream.get();
-            if (head == std::remove_cvref_t<decltype(stream)>::traits_type::eof())
-                break;
-            buf.resize(stream.rdbuf()->in_avail());
-            const auto count = stream.readsome(buf.data(), buf.size());
-            [[maybe_unused]] std::lock_guard lk{m_runtime_log_mtx};
-            const auto existing = m_runtime_log.size();
-            m_runtime_log.resize(existing + count + 1);
-            m_runtime_log[existing] = static_cast<char>(head);
-            std::memcpy(m_runtime_log.data() + existing + 1, buf.data(), count);
-        }
-#endif
-        stream.pipe().close();
+        //constexpr size_t buf_len = 1024;
+        LogHandler<1024> log_handler(m_internal->sketch_log, m_runtime_log_mtx);
+        log_handler.handle(m_runtime_log);
+        m_internal->sketch_log.pipe().close();
     }};
 }
 
@@ -302,5 +269,65 @@ void Board::do_reap() noexcept {
         in.sketch_log_grabber.join();
     }
 }
+
+template <int buf_len> void LogHandlerBase<buf_len>::handle(std::string &runtime_log) {
+    std::string buf;
+    buf.reserve((std::size_t)buf_len);
+    while (m_log.good()) {
+        const int head = m_log.get();
+        if (head == std::remove_cvref_t<decltype(m_log)>::traits_type::eof())
+            break;
+        buf.resize(m_log.rdbuf()->in_avail());
+        const auto count = m_log.readsome(buf.data(), buf.size());
+        [[maybe_unused]] std::lock_guard lk{m_log_mtx};
+        const auto existing = runtime_log.size();
+        runtime_log.resize(existing + count + 1);
+        runtime_log[existing] = static_cast<char>(head);
+        std::memcpy(runtime_log.data() + existing + 1, buf.data(), count);
+    }
+}
+
+template <int buf_len> void LinuxLogHandler<buf_len>::handle(std::string &runtime_log) {
+    std::array<char, (std::size_t)buf_len> buf;
+    for (;;) {
+        const int fd = this->m_log.pipe().native_source();
+        const auto count = ::read(fd, buf.data(), buf_len);
+        if (count == 0) // eof
+            break;
+        if (count == -1) {
+            if (errno == EINTR)
+                continue;
+            else
+                break;
+        }
+        [[maybe_unused]] std::lock_guard lk{this->m_log_mtx};
+        const auto existing = runtime_log.size();
+        runtime_log.resize(existing + count);
+        std::memcpy(runtime_log.data() + existing, buf.data(), count);
+    }
+}
+/*
+#if BOOST_OS_LINUX
+        std::array<char, buf_len> buf;
+        for (;;) {
+            const int fd = stream.pipe().native_source();
+            const auto count = ::read(fd, buf.data(), buf_len);
+            if (count == 0) // eof
+                break;
+            if (count == -1) {
+                if (errno == EINTR)
+                    continue;
+                else
+                    break;
+            }
+            [[maybe_unused]] std::lock_guard lk{m_runtime_log_mtx};
+            const auto existing = m_runtime_log.size();
+            m_runtime_log.resize(existing + count);
+            std::memcpy(m_runtime_log.data() + existing, buf.data(), count);
+        }
+#else
+#endif
+
+*/
 
 } // namespace smce
