@@ -271,12 +271,11 @@ std::error_code Toolchain::do_build(Sketch& sketch) noexcept {
     // clang-format on
 
     std::string line;
-    while (cmake_child.running() && std::getline(cmake_out, line) && !line.empty()) {
+    if (cmake_child.running() && std::getline(cmake_out, line) && !line.empty()) {
         if (!line.starts_with("cmake")) {
             cmake_child.join();
             return toolchain_error::cmake_unknown_output;
         }
-        break;
     }
     cmake_child.join();
     if (cmake_child.native_exit_code() != 0)
