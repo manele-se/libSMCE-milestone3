@@ -56,6 +56,7 @@ int Stream::peekNextDigit(LookaheadMode lookahead, bool detectDecimal) {
             default:
                 return -1;
             }
+            [[fallthrough]];
         case SKIP_ALL:
             break;
         }

@@ -23,7 +23,7 @@
 #include <cctype>
 #include <cmath>
 #include <cstdint>
-#include <cstdlib>
+//#include <cstdlib>
 #include "SMCE_dll.hpp"
 
 #define PROGMEM
@@ -98,9 +98,10 @@ inline bool isUpperCase(char c) noexcept { return std::isupper(+c); }
 inline bool isWhitespace(char c) noexcept { return c == ' ' || c == '\t'; }
 
 //** Random numbers **//
-inline long random(long min, long max) { return std::rand() % (max - min) + min; }
-inline long random(long max) { return random(0, max); }
-inline void randomSeed(unsigned long s) { std::srand(s); }
+
+long random(long min, long max);
+long random(long max);
+void randomSeed(unsigned long s);
 
 //** Bits **//
 #define bit(n) (1 << (n))
