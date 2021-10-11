@@ -26,8 +26,9 @@ void Print::clearWriteError() noexcept { setWriteError(0); }
 
 std::size_t Print::write(const uint8_t* buffer, std::size_t size) {
     const auto beg = buffer;
-    while (size-- && write(*buffer++))
-        ;
+    while (size--) {
+        if (!write(*buffer++)) break;
+    }
     return std::distance(beg, buffer);
 }
 
