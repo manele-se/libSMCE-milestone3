@@ -108,13 +108,13 @@ template <int buf_len> class LogHandlerBase {
     std::mutex &m_log_mtx;
   public:
     LogHandlerBase(boost::process::ipstream & log, std::mutex &log_mtx): m_log{log}, m_log_mtx{log_mtx} { }
-    [[nodiscard]] virtual void handle(std::string &runtime_log);
+    virtual void handle(std::string &runtime_log);
 };
 
 template <int buf_len> class LinuxLogHandler : public LogHandlerBase<buf_len> {
   public:
-    LinuxLogHandler(boost::process::ipstream & log, std::mutex &log_mtx): LogHandlerBase(log, log_mtx) { }
-    [[nodiscard]] void handle(std::string &runtime_log) override;
+    LinuxLogHandler(boost::process::ipstream & log, std::mutex &log_mtx): LogHandlerBase<buf_len>(log, log_mtx) { }
+    void handle(std::string &runtime_log) override;
 };
 
 #if BOOST_OS_LINUX
