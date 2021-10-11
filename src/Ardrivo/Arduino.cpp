@@ -19,6 +19,7 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
+#include <random>
 #include "Ardrivo/Arduino.h"
 #include "SMCE/BoardView.hpp"
 
@@ -137,3 +138,9 @@ unsigned long millis() {
     return static_cast<unsigned long>(
         std::chrono::duration_cast<std::chrono::milliseconds>(current_time - start_time).count());
 }
+
+static std::default_random_engine dre;
+
+long random(long min, long max) { return dre() % (max - min) + min; }
+long random(long max) { return random(0, max); }
+void randomSeed(unsigned long s) { dre.seed(s); }
