@@ -139,7 +139,7 @@ unsigned long millis() {
         std::chrono::duration_cast<std::chrono::milliseconds>(current_time - start_time).count());
 }
 
-static std::default_random_engine dre;
+static std::default_random_engine dre; //NOSONAR not used in security-sensitive contexts
 
 long random(long min, long max) { return dre() % (max - min) + min; }
 long random(long max) { return random(0, max); }
