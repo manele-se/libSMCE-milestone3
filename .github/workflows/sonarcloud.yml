@@ -7,7 +7,13 @@ on:
       - sc-*
     inputs:
       tags:
-        description: 'Check with SonarCloud'
+        description: 'Manually check with SonarCloud'
+  push:
+    branches:
+      - sc-*
+    inputs:
+      tags:
+        description: 'Automatically check with SonarCloud'
 jobs:
   build:
     name: Build and check with SonarCloud
