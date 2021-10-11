@@ -39,7 +39,6 @@ struct SMCE_API BoardConfig {
         struct AnalogDriver {
             bool board_read;
             bool board_write;
-            // std::size_t width;
         };
         std::uint16_t pin_id{};
         std::optional<DigitalDriver> digital_driver;
@@ -53,12 +52,6 @@ struct SMCE_API BoardConfig {
         std::size_t tx_buffer_length = 64;
         std::size_t flushing_threshold = 0;
     };
-    /*
-    struct SMCE_API I2cBus {
-        std::optional<std::uint16_t> rx_pin_override;
-        std::optional<std::uint16_t> tx_pin_override;
-    };
-    */
     struct SMCE_API SecureDigitalStorage {
         std::uint16_t cspin = 0; /// SPI Chip-Select pin; default one opened is 0
         stdfs::path root_dir;    /// Path to root directory
@@ -79,7 +72,6 @@ struct SMCE_API BoardConfig {
     std::vector<std::uint16_t> pins;        /// GPIO pins
     std::vector<GpioDrivers> gpio_drivers;  /// GPIO drivers to apply on existing pins
     std::vector<UartChannel> uart_channels; /// UART channels
-    // std::vector<I2cBus> i2c_buses;
     std::vector<SecureDigitalStorage> sd_cards;
     std::vector<FrameBuffer> frame_buffers; /// Frame-buffers (cameras & screens)
 };
