@@ -93,7 +93,7 @@ class SMCE_API Board {
     void do_reap() noexcept;
 
     Status m_status{};
-    bool isStarted() { return m_status == Status::running || m_status == Status::suspended; }
+    const bool isStarted() { return m_status == Status::running || m_status == Status::suspended; }
     std::optional<BoardConfig> m_conf_opt;
     const Sketch* m_sketch_ptr = nullptr;
     std::string m_runtime_log;
